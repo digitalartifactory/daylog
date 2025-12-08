@@ -117,7 +117,7 @@ export default async function Boards({
               <p className="text-center">Showing {boards?.length} of {boardCount} boards</p>
               {parseInt(currentPage) < boardCount &&
                 <Link className="btn btn-ghost btn-primary mx-auto"
-                  href={`/boards?perPage=${parseInt(currentPage) + parseInt(perPage)}`}>
+                  href={`/boards?perPage=${parseInt(currentPage) * 2}`}>
                   Load more
                 </Link>}
             </div>

@@ -131,7 +131,7 @@ export default async function Notes({
               <p className="text-center">Showing {notes?.length} of {notesCount} notes</p>
               {parseInt(currentPerPage) < notesCount &&
                 <Link className="btn btn-ghost btn-primary mx-auto"
-                  href={`/boards/${id}/notes?perPage=${parseInt(currentPerPage) + parseInt(perPage)}`}>
+                  href={`/boards/${id}/notes?perPage=${parseInt(currentPerPage) * 2}`}>
                   Load more
                 </Link>}
             </div>
