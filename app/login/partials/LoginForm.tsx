@@ -2,16 +2,21 @@
 
 import FormField from '@/components/FormField';
 import Image from 'next/image';
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { signin } from '../lib/actions';
+import { validateAllowRegistration } from '@/app/register/lib/actions';
 
-export default function LoginForm({ allowReg }: { allowReg: boolean }) {
+export default function LoginForm() {
   const [state, action, pending] = useActionState(signin, undefined);
+  const [isRegAllowed, setIsRegAllowed] = useState(false);
 
   useEffect(() => {
     // Resolves Bootstrap modal issue when redirects to login from a modal.
     const modal = document.getElementsByClassName('modal-backdrop');
     if (modal.length > 0) modal[0].remove();
+    validateAllowRegistration().then((allowReg) => {
+      setIsRegAllowed(allowReg);
+    });
   }, []);
 
   return (
@@ -31,7 +36,10 @@ export default function LoginForm({ allowReg }: { allowReg: boolean }) {
           </a>
         </div>
         {state?.message && (
-          <div className="d-flex flex-column alert alert-danger alert-dismissible" role="alert">
+          <div
+            className="d-flex flex-column alert alert-danger alert-dismissible"
+            role="alert"
+          >
             <h3>Could not login</h3>
             <p>{state.message}</p>
             <a
@@ -82,7 +90,7 @@ export default function LoginForm({ allowReg }: { allowReg: boolean }) {
             </form>
           </div>
         </div>
-        {allowReg && (
+        {isRegAllowed && (
           <div className="text-center text-secondary mt-3">
             Don&apos;t have account yet?{' '}
             <a href="./register" tabIndex={-1}>

@@ -3,12 +3,11 @@
 import { prisma } from '@/prisma/client';
 import { hashPassword } from '@/utils/crypto';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { InitFormState, InitSignupFormSchema } from './definitions';
 
-export async function validateAdminUserExists() {
+export async function validateAdminUserExists() : Promise<boolean> {
   const admin = await prisma.user.findFirst({ where: { role: 'admin' } });
-  if (admin) redirect('/login');
+  return admin !== null;
 }
 
 export async function signupInit(state: InitFormState, formData: FormData) {

@@ -1,18 +1,14 @@
 import { prismaMock } from '@/prisma/singleton';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { describe, expect, it, vi } from 'vitest';
 import { signupInit, validateAdminUserExists } from './actions';
 import { InitFormState } from './definitions';
+import { User } from '@/prisma/generated/client';
 
 const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   hashPassword: vi.fn().mockReturnValue('hashedPassword'),
-}));
-
-vi.mock('next/navigation', () => ({
-  redirect: mocks.redirect,
 }));
 
 vi.mock('next/cache', () => ({
@@ -23,149 +19,111 @@ vi.mock('@/utils/crypto', () => ({
   hashPassword: mocks.hashPassword,
 }));
 
+const admin = {
+  role: 'admin',
+  id: 1,
+  name: null,
+  email: '',
+  password: '',
+  secret: null,
+  mfa: false,
+  terms: '',
+  sortBoardsBy: 'created_desc',
+  sortNotesBy: 'created_desc',
+} as User;
+
 describe('validateAdminUserExists', () => {
-  const securePassword = 'SecurePassword123#';
-  it('should redirect to /login if an admin user exists', async () => {
-    prismaMock.user.findFirst.mockResolvedValueOnce({
-      role: 'admin',
-      id: 0,
-      name: null,
-      email: '',
-      password: '',
-      secret: null,
-      mfa: false,
-      terms: '',
-      sortBoardsBy: 'created_desc',
-      sortNotesBy: 'created_desc',
-    });
+  it('should return true if admin user exists', async () => {
+    prismaMock.user.findFirst.mockResolvedValueOnce(admin);
 
-    await validateAdminUserExists();
+    const result = await validateAdminUserExists();
 
-    expect(redirect).toHaveBeenCalledWith('/login');
+    expect(result).toBe(true);
   });
 
-  it('should not redirect if no admin user exists', async () => {
+  it('should return false if admin user not exists', async () => {
     prismaMock.user.findFirst.mockResolvedValueOnce(null);
 
-    await validateAdminUserExists();
+    const result = await validateAdminUserExists();
 
-    expect(redirect).not.toHaveBeenCalled();
+    expect(result).toBe(false);
+  });
+});
+
+describe('signupInit', () => {
+  const securePassword = 'SecurePassword123#';
+  it('should return errors if form data is invalid', async () => {
+    const formData = new FormData();
+    formData.append('name', '');
+    formData.append('email', 'invalid-email');
+    formData.append('password', 'short');
+
+    const state = {} as InitFormState;
+
+    const result = await signupInit(state, formData);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toBeDefined();
   });
 
-  describe('validateAdminUserExists', () => {
-    it('should redirect to /login if an admin user exists', async () => {
-      prismaMock.user.findFirst.mockResolvedValueOnce({
-        role: 'admin',
-        id: 0,
-        name: null,
-        email: '',
-        password: '',
-        secret: null,
-        mfa: false,
-        terms: '',
-        sortBoardsBy: 'created_desc',
-        sortNotesBy: 'created_desc',
-      });
+  it('should return message if user already exists', async () => {
+    const formData = new FormData();
+    formData.append('name', 'Admin');
+    formData.append('email', 'admin@example.com');
+    formData.append('password', securePassword);
 
-      await validateAdminUserExists();
+    const state = {} as InitFormState;
 
-      expect(redirect).toHaveBeenCalledWith('/login');
-    });
+    prismaMock.user.findUnique.mockResolvedValueOnce(admin);
 
-    it('should not redirect if no admin user exists', async () => {
-      prismaMock.user.findFirst.mockResolvedValueOnce(null);
+    const result = await signupInit(state, formData);
 
-      await validateAdminUserExists();
-
-      expect(redirect).not.toHaveBeenCalled();
-    });
+    expect(result.success).toBe(false);
+    expect(result.message).toBe('User already exists.');
   });
 
-  describe('signupInit', () => {
-    it('should return errors if form data is invalid', async () => {
-      const formData = new FormData();
-      formData.append('name', '');
-      formData.append('email', 'invalid-email');
-      formData.append('password', 'short');
+  it('should create a new admin user if valid data is provided', async () => {
+    const formData = new FormData();
+    formData.append('name', 'Admin');
+    formData.append('email', 'admin@example.com');
+    formData.append('password', securePassword);
 
-      const state = {} as InitFormState;
+    const state = {} as InitFormState;
 
-      const result = await signupInit(state, formData);
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
 
-      expect(result.success).toBe(false);
-      expect(result.errors).toBeDefined();
-    });
+    const result = await signupInit(state, formData);
 
-    it('should return message if user already exists', async () => {
-      const formData = new FormData();
-      formData.append('name', 'Admin');
-      formData.append('email', 'admin@example.com');
-      formData.append('password', securePassword);
-
-      const state = {} as InitFormState;
-
-      prismaMock.user.findUnique.mockResolvedValueOnce({
-        role: 'admin',
-        id: 0,
+    expect(result.success).toBe(true);
+    expect(prismaMock.user.create).toHaveBeenCalledWith({
+      data: {
         name: 'Admin',
         email: 'admin@example.com',
         password: 'hashedPassword',
-        secret: null,
-        mfa: false,
         terms: 'accept',
-        sortBoardsBy: 'created_desc',
-        sortNotesBy: 'created_desc',
-      });
-
-      const result = await signupInit(state, formData);
-
-      expect(result.success).toBe(false);
-      expect(result.message).toBe('User already exists.');
+        role: 'admin',
+      },
     });
+    expect(revalidatePath).toHaveBeenCalledWith('/', 'layout');
+  });
 
-    it('should create a new admin user if valid data is provided', async () => {
-      const formData = new FormData();
-      formData.append('name', 'Admin');
-      formData.append('email', 'admin@example.com');
-      formData.append('password', securePassword);
+  it('should return an error message if an exception occurs', async () => {
+    const formData = new FormData();
+    formData.append('name', 'Admin');
+    formData.append('email', 'admin@example.com');
+    formData.append('password', securePassword);
 
-      const state = {} as InitFormState;
+    const state = {} as InitFormState;
 
-      prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.findUnique.mockRejectedValueOnce(
+      new Error('Database error')
+    );
 
-      const result = await signupInit(state, formData);
+    const result = await signupInit(state, formData);
 
-      expect(result.success).toBe(true);
-      expect(prismaMock.user.create).toHaveBeenCalledWith({
-        data: {
-          name: 'Admin',
-          email: 'admin@example.com',
-          password: 'hashedPassword',
-          terms: 'accept',
-          role: 'admin',
-        },
-      });
-      expect(revalidatePath).toHaveBeenCalledWith('/', 'layout');
-    });
-
-    it('should return an error message if an exception occurs', async () => {
-      const formData = new FormData();
-      formData.append('name', 'Admin');
-      formData.append('email', 'admin@example.com');
-      formData.append('password', securePassword);
-
-      const state = {} as InitFormState;
-
-      prismaMock.user.findUnique.mockRejectedValueOnce(
-        new Error('Database error')
-      );
-
-      const result = await signupInit(state, formData);
-
-      expect(result.success).toBe(false);
-      expect(result.message).toBe(
-        'An error occurred while creating your admin account.'
-      );
-    });
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(
+      'An error occurred while creating your admin account.'
+    );
   });
 });

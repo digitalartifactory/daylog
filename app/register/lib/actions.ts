@@ -3,7 +3,6 @@
 import { getSettings } from '@/app/admin/lib/actions';
 import { prisma } from '@/prisma/client';
 import { hashPassword } from '@/utils/crypto';
-import { redirect } from 'next/navigation';
 import { FormState, SignupFormSchema } from './definitions';
 
 export async function signup(state: FormState, formData: FormData) {
@@ -60,8 +59,8 @@ export async function signup(state: FormState, formData: FormData) {
   }
 }
 
-export async function validateAllowRegistration() {
+export async function validateAllowRegistration() : Promise<boolean> {
   const settings = await getSettings();
   const allowReg = settings?.allowReg ?? false;
-  if (!allowReg) redirect('login');
+  return allowReg;
 }

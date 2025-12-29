@@ -68,14 +68,6 @@ vi.mock('./cookies', () => ({
 }));
 
 describe('validateAdminUserNotExists', () => {
-  it('should redirect to /register/init if no admin user exists', async () => {
-    prismaMock.user.findFirst.mockResolvedValue(null);
-
-    await validateAdminUserNotExists();
-
-    expect(redirect).toHaveBeenCalledWith('/register/init');
-  });
-
   it('should not redirect if an admin user exists', async () => {
     prismaMock.user.findFirst.mockResolvedValue({
       id: 1,

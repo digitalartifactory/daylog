@@ -1,7 +1,7 @@
 import { prismaMock } from '@/prisma/singleton';
-import { redirect } from 'next/navigation';
 import { describe, expect, it, vi } from 'vitest';
 import { signup, validateAllowRegistration } from './actions';
+import { User } from '@/prisma/generated/client';
 
 const mocks = vi.hoisted(() => ({
   getSettings: vi.fn(),
@@ -84,7 +84,7 @@ describe('signup', () => {
       role: '',
       sortBoardsBy: 'created_desc',
       sortNotesBy: 'created_desc',
-    });
+    } as User);
 
     const result = await signup({}, formData);
 
@@ -137,17 +137,19 @@ describe('signup', () => {
 });
 
 describe('validateAllowRegistration', () => {
-  it('should redirect to login if registration is not allowed', async () => {
+  it('should return false if registration is not allowed', async () => {
     mocks.getSettings.mockResolvedValue({ allowReg: false });
 
-    await validateAllowRegistration();
-    expect(redirect).toHaveBeenCalledWith('login');
+    const result = await validateAllowRegistration();
+
+    expect(result).toBe(false);
   });
 
-  it('should not redirect if registration is allowed', async () => {
+  it('should return true if registration is allowed', async () => {
     mocks.getSettings.mockResolvedValue({ allowReg: true });
 
-    await validateAllowRegistration();
-    expect(redirect).not.toHaveBeenCalled();
+    const result = await validateAllowRegistration();
+
+    expect(result).toBe(true);
   });
 });

@@ -20,9 +20,9 @@ import {
 } from './definitions';
 import { NextRequest } from 'next/server';
 
-export async function validateAdminUserNotExists() {
+export async function validateAdminUserNotExists(): Promise<boolean> {
   const admin = await prisma.user.findFirst({ where: { role: 'admin' } });
-  if (!admin) redirect('/register/init');
+  return !admin;
 }
 
 export async function generateSessionToken(): Promise<string> {
@@ -191,11 +191,10 @@ export async function signin(state: FormState, formData: FormData) {
 }
 
 export const getCurrentSession = cache(
-  async (req?: NextRequest | null): Promise<SessionValidationResult> => {
-    let token: string | null = null;
-    if (req) {
+  async (req?: NextRequest | null, token?: string | null): Promise<SessionValidationResult> => {
+    if (token == null && req) {
       token = req.cookies.get('session')?.value ?? null;
-    } else {
+    } else if (token == null) {
       const cookieStore = await cookies();
       token = cookieStore.get('session')?.value ?? null;
     }

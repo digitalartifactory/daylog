@@ -1,8 +1,5 @@
-import { validateAdminUserExists } from './lib/actions';
 import InitRegisterForm from './partials/InitRegisterForm';
 
-export default async function Page() {
-  await validateAdminUserExists();
-
+export default function Page() {
   return <InitRegisterForm />;
 }

@@ -1,0 +1,40 @@
+services:
+      
+  db:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: daylog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d daylog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: app
+    ports:
+      - 8000:3000
+    environment:
+      # See .env.example for all available environment variables
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/daylog?schema=public
+      - ENVIRONMENT=production
+      - STORAGE_PATH=/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run start:docker
+    volumes:
+      - app_storage:/app/storage
+
+volumes:
+  postgres_data:
+  app_storage:
+    driver: local
+
