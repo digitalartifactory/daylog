@@ -1,6 +1,9 @@
 # syntax=docker.io/docker/dockerfile:1
 
-FROM node:latest AS base
+FROM node:20-alpine
+RUN apk update && apk upgrade
+RUN apk add --no-cache openssl
+RUN apk add --no-cache libc6-compat
 
 # Install dependencies only when needed
 FROM base AS deps
