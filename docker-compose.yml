@@ -19,7 +19,7 @@ services:
       - data:/var/lib/postgresql/data
 
   app:
-    build: .
+    image: davidartifacts/daylog:${DAYLOG_VERSION}
     container_name: daylog-app
     ports:
       - 3000:3000
